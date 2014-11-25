@@ -1,0 +1,7 @@
+new game project
+
+player has random map to go through and find loot.
+
+random map
+random loot
+
