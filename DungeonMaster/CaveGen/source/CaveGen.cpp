@@ -126,30 +126,16 @@ void DoSimStep(Grid& a_map)
 	a_map = newMap;
 }
 
-void TestCount()
+void Update(Grid& map, const unsigned int sprite)
 {
-	int width = 10;
-	int height = 10;
-	Grid map(width, vector<bool>(height, false));
-	map[0][4] = true;
-	map[0][5] = true;
-	map[1][1] = true;
-	map[2][4] = true;
-	map[2][5] = true;
-	map[3][4] = true;
-	map[3][9] = true;
-	map[4][0] = true;
-	map[4][2] = true;
-	map[4][7] = true;
-	map[4][9] = true;
-	map[6][4] = true;
-	map[6][5] = true;
-	map[7][4] = true;
-	map[8][3] = true;
-	map[9][6] = true;
-
-	int r = CountAliveNeighbors(map, 0, 4);
-	
+	for (int x = 0; x < width; x += 10)
+	{
+		for (int y = 0; y < height; y += 10)
+		{
+			if (map[x][y])
+				MoveSprite(sprite, x, y);
+		}
+	}
 }
 
 void main(){
@@ -167,7 +153,11 @@ void main(){
 	Grid cellMap(width, vector<bool>(height, false));
 	InitMap(cellMap);
 
+	/*for (int i = 0; i < 5; i++)
+		DoSimStep(cellMap);*/
+
 	unsigned int pixel = CreateSprite("images/pixel_10.png", 10, 10, true);
+	//Update(cellMap, pixel);
 	//MoveSprite(pixel, width * .25, height - 100);
 	do
 	{
