@@ -4,6 +4,7 @@
 #include <time.h>
 #include <iostream>
 #include "AIE.h"
+#include ""
 
 using namespace std;
 
@@ -153,8 +154,8 @@ void main(){
 	Grid cellMap(width, vector<bool>(height, false));
 	InitMap(cellMap);
 
-	/*for (int i = 0; i < 5; i++)
-		DoSimStep(cellMap);*/
+	for (int i = 0; i < 5; i++)
+		DoSimStep(cellMap);
 
 	unsigned int pixel = CreateSprite("images/pixel_10.png", 10, 10, true);
 	//Update(cellMap, pixel);

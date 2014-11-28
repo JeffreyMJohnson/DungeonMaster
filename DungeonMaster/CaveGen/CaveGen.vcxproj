@@ -86,9 +86,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\CaveGen.cpp" />
+    <ClCompile Include="source\EasyBMP.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\AIE.h" />
+    <ClInclude Include="include\EasyBMP.h" />
+    <ClInclude Include="include\EasyBMP_BMP.h" />
+    <ClInclude Include="include\EasyBMP_DataStructures.h" />
+    <ClInclude Include="include\EasyBMP_VariousBMPutilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
