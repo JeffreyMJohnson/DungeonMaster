@@ -4,7 +4,7 @@
 #include <time.h>
 #include <iostream>
 #include "AIE.h"
-#include ""
+#include "EasyBMP.h"
 
 using namespace std;
 
@@ -13,7 +13,7 @@ typedef vector<vector<bool>> Grid;
 const int width = 600;
 const int height = 600;
 
-const float chanceToStartAlive =45.0f;
+const float chanceToStartAlive = 45.0f;
 
 /*
 rules:
@@ -139,8 +139,41 @@ void Update(Grid& map, const unsigned int sprite)
 	}
 }
 
+void WriteBlock(float x, float y, BMP& bitMap)
+{
+	RGBApixel p;
+	p.Red = 0;
+	p.Green = 0;
+	p.Blue = 255;
+	p.Alpha = 255;
+
+	for (int i = x - 5; i < x + 5; i++)
+	{
+		for (int j = y - 5; j < y + 5; j++)
+		{
+			if (i >= 0 && i <= width && j >= 0 && j <= height)
+			{
+				bitMap.SetPixel(i, j, p);
+			}
+		}
+	}
+}
+
+void MakeBitmap(Grid& cellMap, BMP& bitMap)
+{
+	for (int x = 0; x < width; x++)
+	{
+		for (int y = 0; y < height; y++)
+		{
+			if (cellMap[x][y])
+			{
+				WriteBlock(x, y, bitMap);
+			}
+		}
+	}
+}
+
 void main(){
-	//TestCount();
 
 
 	Initialise(width, height, false, "Test Game");
@@ -157,28 +190,35 @@ void main(){
 	for (int i = 0; i < 5; i++)
 		DoSimStep(cellMap);
 
-	unsigned int pixel = CreateSprite("images/pixel_10.png", 10, 10, true);
-	//Update(cellMap, pixel);
-	//MoveSprite(pixel, width * .25, height - 100);
+	BMP image;
+	image.SetSize(width, height);
+	MakeBitmap(cellMap, image);
+
+	
+	image.WriteToFile("myImage.bmp");
+	unsigned int pixel = CreateSprite("myImage.bmp", width, height, true);
+
+	////Update(cellMap, pixel);
+	////MoveSprite(pixel, width * .25, height - 100);
 	do
 	{
-		SetFont("./fonts/invaders.fnt");
-		for (int x = 0; x < width; x+=10)
-		{
-			for (int y = 0; y < height; y+=10)
-			{
-				if (cellMap[x][y])
-				{
-					MoveSprite(pixel, x, y);
+	//	SetFont("./fonts/invaders.fnt");
+	//	for (int x = 0; x < width; x+=10)
+	//	{
+	//		for (int y = 0; y < height; y+=10)
+	//		{
+	//			if (cellMap[x][y])
+	//			{
+					MoveSprite(pixel, width * .5f, height * .5f);
 					DrawSprite(pixel);
-				}
+	//			}
 
-			}
-		}
-		if (IsKeyDown(KEY_SPACE))
-		{
-			DoSimStep(cellMap);
-		}
+	//		}
+	//	}
+	//	if (IsKeyDown(KEY_SPACE))
+	//	{
+	//		DoSimStep(cellMap);
+	//	}
 		if (IsKeyDown('Q'))
 		{
 			quit = true;
