@@ -1,5 +1,7 @@
 #include <string>
 #include <vector>
+#include <queue>
+#include <stack>
 #include <limits>
 #include <time.h>
 #include <iostream>
@@ -140,21 +142,21 @@ void Update(Grid& map, const unsigned int sprite)
 	}
 }
 
-void WriteBlock(float x, float y, BMP& bitMap)
+void WriteBlock(float x, float y, BMP& bitMap, RGBApixel& color)
 {
-	RGBApixel p;
-	p.Red = 0;
-	p.Green = 0;
-	p.Blue = 255;
-	p.Alpha = 255;
+	//RGBApixel p;
+	//p.Red = 0;
+	//p.Green = 0;
+	//p.Blue = 255;
+	//p.Alpha = 255;
 
 	for (int i = x - 5; i < x + 5; i++)
 	{
 		for (int j = y - 5; j < y + 5; j++)
 		{
-			if (i >= 0 && i <= width && j >= 0 && j <= height)
+			if (i >= 0 && i < width && j >= 0 && j < height)
 			{
-				bitMap.SetPixel(i, j, p);
+				bitMap.SetPixel(i, j, color);
 			}
 		}
 	}
@@ -162,13 +164,30 @@ void WriteBlock(float x, float y, BMP& bitMap)
 
 void MakeBitmap(Grid& cellMap, BMP& bitMap)
 {
+	RGBApixel blue;
+	blue.Red = 0;
+	blue.Green = 0;
+	blue.Blue = 255;
+	blue.Alpha = 255;
+
+	RGBApixel white;
+	white.Red = 255;
+	white.Green = 255;
+	white.Blue = 255;
+	white.Alpha = 255;
+
+
 	for (int x = 0; x < width; x++)
 	{
 		for (int y = 0; y < height; y++)
 		{
 			if (cellMap[x][y])
 			{
-				WriteBlock(x, y, bitMap);
+				WriteBlock(x, y, bitMap, blue);
+			}
+			else
+			{
+				WriteBlock(x, y, bitMap, white);
 			}
 		}
 	}
@@ -232,27 +251,78 @@ void FloodFill2(Vector2& start)
 	bool backtrack, findLoop;
 
 	cur = &start;
-	
+
 	//set to default direction
 	curDir = RIGHT;
+	backtrack = false;
+	findLoop = false;
 
 
+
+
+}
+
+void FloodFill3(const Vector2& node, RGBApixel& targetColor, RGBApixel& replacementColor, BMP& image)
+{
+	if (targetColor == replacementColor)
+		return;
+	stack<Vector2> q;
+	q.push(node);
+
+	Grid processed(width, vector<bool>(height, false));
+
+	while (!q.empty())
+	{
+		Vector2 n = q.top();
+		q.pop();
+
+		if (image.GetPixel(n.x, n.y) == targetColor)
+		{
+			image.SetPixel(n.x, n.y, replacementColor);
+			processed[n.x][n.y] = true;
+
+			//add west node to q if not processed
+			Vector2 west(n.x - 1, n.y);
+			if (west.x >= 0 && !processed[west.x][west.y])
+			{
+				q.push(west);
+			}
+			Vector2 east(n.x + 1, n.y);
+			if (east.x < width && !processed[east.x][east.y])
+			{
+				q.push(east);
+			}
+
+			Vector2 north(n.x, n.y + 1);
+			if (north.y < height && !processed[north.x][north.y])
+			{
+				q.push(north);
+			}
+
+			Vector2 south(n.x, n.y - 1);
+			if (south.y >= 0 && !processed[south.x][south.y])
+			{
+				q.push(south);
+			}
+		}
+	}
+	return;
 }
 
 void FloodFillTest(BMP& image)
 {
 	RGBApixel newColor;
-	newColor.Red = 1.0f;
-	newColor.Green = 0.0f;
-	newColor.Blue = 0.0f;
-	newColor.Alpha = 1.0f;
+	newColor.Red = 255;
+	newColor.Green = 0;
+	newColor.Blue = 0;
+	newColor.Alpha = 255;
 
 	//color to search for
 	RGBApixel targetColor;
-	targetColor.Alpha = 1.0f;
-	targetColor.Red = 1.0f;
-	targetColor.Green = 1.0f;
-	targetColor.Blue = 1.0f;
+	targetColor.Alpha = 255;
+	targetColor.Red = 255;
+	targetColor.Green = 255;
+	targetColor.Blue = 255;
 
 	//find cave
 	Vector2 cavePos;
@@ -261,7 +331,8 @@ void FloodFillTest(BMP& image)
 	{
 		for (int y = 0; y < height && !found; y++)
 		{
-			if (image.GetPixel(x,y) == targetColor)
+			RGBApixel currentColor = image.GetPixel(x, y);
+			if (image.GetPixel(x, y) == targetColor)
 			{
 				cavePos.x = x;
 				cavePos.y = y;
@@ -272,7 +343,7 @@ void FloodFillTest(BMP& image)
 
 
 
-	FloodFill(cavePos, image, targetColor, newColor);
+	FloodFill3(cavePos, targetColor, newColor, image);
 
 }
 
