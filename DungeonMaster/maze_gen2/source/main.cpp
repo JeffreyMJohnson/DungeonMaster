@@ -1,16 +1,24 @@
 #include <vector>
 #include <time.h>
+#include <exception>
+#include <iostream>
+#include <string>
 #include "TheMath.h"
+#include "Cell.h"
 
 using namespace std;
 
-typedef vector<Vector2> Vec2List;
+typedef vector<Cell*> Vec2List;
+typedef Vec2List::iterator Vec2It;
 typedef vector<vector<bool>> Bool2DList;
 typedef Vector2 vec2;
+typedef vector<vector<Cell*>> CellGrid;
 
 Bool2DList g_IsWallList;
 Bool2DList g_IsPartOfMazeList;
 Vec2List g_WallList;
+
+CellGrid g_CellGrid;
 
 int gridWidth = 10;
 int gridHeight = 10;
@@ -22,64 +30,91 @@ void InitList()
 {
 	for (int x = 0; x < gridWidth; ++x)
 	{
-		vector<bool> t;
-		vector<bool> f;
+		vector<Cell*> v;
 		for (int y = 0; y < gridHeight; ++y)
 		{
-			t.push_back(true);
-			f.push_back(false);
+			Cell* c = new Cell;
+			c->position = vec2(x, y);
+			v.push_back(c);
 		}
-		g_IsWallList.push_back(t);
-		g_IsPartOfMazeList.push_back(f);
+		g_CellGrid.push_back(v);
 	}
 }
 
-vec2 GetRandomCell()
+Cell* GetRandomCell()
 {
 	int x = rand() % gridWidth;
 	int y = rand() % gridHeight;
-	return vec2(x, y);
+	return g_CellGrid[x][y];
 }
 
-void AddWallsToList(vec2& cell)
+void AddNeighboringWallsToList(Cell* cell)
 {
-	vec2 n = vec2(cell.x, cell.y + 1);
-	vec2 s = vec2(cell.x, cell.y - 1);
-	vec2 e = vec2(cell.x + 1, cell.y);
-	vec2 w = vec2(cell.x - 1, cell.y);
+	vector<Cell*> currentWalls = cell->GetNeighborWalls(g_CellGrid, gridWidth, gridHeight);
+	for (Cell* c : currentWalls)
+	{
+		g_WallList.push_back(c);
+	}
+}
 
-	//is cell in bounds and a wall
-	if (n.x < gridHeight && g_IsWallList[n.x][n.y])
+void DestroyList()
+{
+	for (int x = 0; x < gridWidth; ++x)
 	{
-		g_WallList.push_back(n);
+		for (int y = 0; y < gridHeight; ++y)
+		{
+			delete g_CellGrid[x][y];
+		}
+		g_CellGrid.clear();
 	}
-	if (s.x >= 0 && g_IsWallList[s.x][s.y])
+}
+
+void ToString()
+{
+	cout << "CellList:\n";
+	cout << "************************************************************************\n";
+	for (int x = 0; x < gridWidth; ++x)
 	{
-		g_WallList.push_back(s);
+		cout << "row[" << x << "]:";
+		for (int y = 0; y < gridHeight; ++y)
+		{
+			cout << "[" << y << "] - ";
+			cout << *(g_CellGrid[x][y]) << endl;
+		}
+		cout << endl;
 	}
-	if (e.x < gridWidth && g_IsWallList[e.x][e.y])
-	{
-		g_WallList.push_back(e);
-	}
-	if (w.x >= 0 && g_IsWallList[w.x][w.y])
-	{
-		g_WallList.push_back(w);
-	}
+	cout << "************************************************************************\n";
 }
 
 void main()
 {
 	srand(time(nullptr));
 	InitList();
-	vec2 firstCell = GetRandomCell();
-	g_IsPartOfMazeList[firstCell.x][firstCell.y] = true;
+	Cell* firstCell = GetRandomCell();
 
-	AddWallsToList(firstCell);
+	firstCell->isPartOfMaze = true;
+	AddNeighboringWallsToList(firstCell);
 
 	while (!g_WallList.empty())
 	{
+		//ToString();
+		//system("pause");
+		int index = rand() % g_WallList.size();
+		Cell* wallFromList = g_WallList[index];
 
+		Cell* cellOnOppositeSide = wallFromList->GetOpposite(g_CellGrid, gridWidth, gridHeight);
+		if (cellOnOppositeSide != nullptr && !cellOnOppositeSide->isPartOfMaze)
+		{
+			wallFromList->isPassage = true;
+			cellOnOppositeSide->isPartOfMaze = true;
+
+			AddNeighboringWallsToList(wallFromList);
+		}
+		Vec2It wallsListIterator = g_WallList.begin();
+		g_WallList.erase(wallsListIterator + index);
 	}
-
+	ToString();
 	system("pause");
+	DestroyList();
+
 }

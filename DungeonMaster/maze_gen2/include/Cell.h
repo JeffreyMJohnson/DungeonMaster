@@ -2,19 +2,26 @@
 #define _CELL_H_
 #include <iostream>
 #include <vector>
+#include <assert.h>
+#include <string>
 #include "TheMath.h"
 
 typedef Vector2 vec2;
 
+enum DIRECTION
+{
+	N,S,E,W
+};
+
 class Cell
 {
 public:
-	Cell* previous;
+	DIRECTION moveDirection;
 	vec2 position;
 	bool isPartOfMaze;
 	bool isPassage;
-	vec2 GetOpposite();
-	std::vector<Cell*> GetNeighborWalls();
+	Cell* GetOpposite(std::vector<std::vector<Cell*>>& a_grid, int width, int height);
+	std::vector<Cell*> GetNeighborWalls(std::vector<std::vector<Cell*>>& a_CellGrid, int width, int height);
 
 	Cell();
 	~Cell(){};
