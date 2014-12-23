@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "maze_gen", "maze_gen\maze_g
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "maze_gen2", "maze_gen2\maze_gen2.vcxproj", "{A89960D6-B6D6-45B4-92B0-A245D40F6E49}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "maze_gen3", "maze_gen3\maze_gen3.vcxproj", "{44884D98-6159-475E-BF83-1E251251C70B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -27,6 +29,10 @@ Global
 		{A89960D6-B6D6-45B4-92B0-A245D40F6E49}.Debug|Win32.Build.0 = Debug|Win32
 		{A89960D6-B6D6-45B4-92B0-A245D40F6E49}.Release|Win32.ActiveCfg = Release|Win32
 		{A89960D6-B6D6-45B4-92B0-A245D40F6E49}.Release|Win32.Build.0 = Release|Win32
+		{44884D98-6159-475E-BF83-1E251251C70B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{44884D98-6159-475E-BF83-1E251251C70B}.Debug|Win32.Build.0 = Debug|Win32
+		{44884D98-6159-475E-BF83-1E251251C70B}.Release|Win32.ActiveCfg = Release|Win32
+		{44884D98-6159-475E-BF83-1E251251C70B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
