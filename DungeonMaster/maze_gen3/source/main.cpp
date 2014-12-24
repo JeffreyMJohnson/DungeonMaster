@@ -3,91 +3,105 @@
 #include <assert.h>
 #include <vector>
 
+#include "intVec2.h"
+
 using namespace std;
-
-struct intVec2
-{
-	int x, y;
-	intVec2(){ x = 0; y = 0; }
-	intVec2(int x, int y){ this->x = x; this->y = y; }
-	intVec2 operator=(intVec2& rhs)
-	{
-		return intVec2(rhs.x, rhs.y);
-	}
-	~intVec2(){}
-
-	intVec2 operator+(intVec2& rhs)
-	{
-		return intVec2(x + rhs.x, y + rhs.y);
-	}
-};
-
-struct CellDirection
-{
-	static intVec2 north;
-	static intVec2 east;
-	static intVec2 south;
-	static intVec2 west;
-};
-
-intVec2 CellDirection::north = intVec2(0, 1);
-intVec2 CellDirection::east = intVec2(1, 0);
-intVec2 CellDirection::south = intVec2(0, -1);
-intVec2 CellDirection::west = intVec2(-1, 0);
-
-struct Cell;
-
-struct Wall
-{
-	Cell* cellA = nullptr;
-	Cell* cellB = nullptr;
-	bool isWall = true;
-};
-
-struct Cell
-{
-	bool isPartOfMaze = false;
-	intVec2 position;
-	vector<Wall*> walls;
-	~Cell()
-	{
-		for (Wall* w : walls)
-		{
-			delete w;
-		}
-		walls.clear();
-	}
-
-	Wall* GetWall(Cell* opposite)
-	{
-		for (Wall* w : walls)
-		{
-			if (w->cellB == opposite)
-				return w;
-		}
-		assert(true);//shouldn't get here
-		return nullptr;
-	}
-};
 
 const int sizeX = 20;
 const int sizeY = 20;
 
-vector<vector<Cell*>> cells;
-
-void CreateGrid()
+struct Wall
 {
-	for (int x = 0; x < sizeX; ++x)
+	enum DIRECTION
 	{
-		vector<Cell*> v;
-		for (int y = 0; y < sizeY; ++y)
-		{
-			Cell* c = new Cell;
-			c->position = intVec2(x, y);
-			v.push_back(c);
-		}
-		cells.push_back(v);
+		N = 0,
+		E,
+		S,
+		W
+	};
+	bool isWall = true;
+	intVec2 otherSide = intVec2(-1, -1);
+
+	Wall& operator=(Wall& rhs)
+	{
+		this->isWall = rhs.isWall;
+		this->otherSide = rhs.otherSide;
+		return *this;
 	}
+
+	friend ostream& operator<<(ostream& out, Wall& rhs)
+	{
+		out << "Wall: [isWall: " << rhs.isWall;
+		out << " otherSide: " << rhs.otherSide;
+		out << "]";
+		return out;
+	}
+
+};
+
+struct Cell
+{
+	bool isInMaze = false;
+	intVec2 position;
+	Wall walls[4];
+
+	Cell& operator=(Cell& rhs)
+	{
+		this->isInMaze = rhs.isInMaze;
+		this->position = rhs.position;
+		memcpy(this->walls, rhs.walls, sizeof(Wall) * 4);
+		return *this;
+	}
+
+	friend ostream& operator<<(ostream& out, Cell& rhs)
+	{
+		out << "Cell: [isInMaze: " << rhs.isInMaze;
+		out << " position: " << rhs.position;
+		for (int i = 0; i < 4; i++)
+		{
+			switch ((Wall::DIRECTION)i)
+			{
+			case Wall::N:
+				out << " N ";
+				break;
+			case Wall::E:
+				out << " E ";
+				break;
+			case Wall::S:
+				out << " S ";
+				break;
+			case Wall::W:
+				out << " W ";
+				break;
+			}
+			out << "wall: " << rhs.walls[(Wall::DIRECTION)i];
+		}
+		return out;
+	}
+};
+
+Cell cells[sizeX][sizeY];
+
+bool IsInBounds(intVec2& position);
+
+void InitializeGrid();
+
+void GenerateMaze();
+
+void GenerateCellWalls(Cell& cell);
+
+void PrintMaze();
+
+void AddWallsToWallList(vector<Wall*>& wallList, Cell& cell);
+
+int GetRand(int min, int max);
+
+void main()
+{
+	InitializeGrid();
+	GenerateMaze();
+	PrintMaze();
+	system("pause");
 }
 
 bool IsInBounds(intVec2& position)
@@ -95,341 +109,115 @@ bool IsInBounds(intVec2& position)
 	return position.x >= 0 && position.y >= 0 && position.x < sizeX && position.y < sizeY;
 }
 
-void LoadWall(intVec2 pos, intVec2 neighborPos)
+void InitializeGrid()
 {
-	if (IsInBounds(neighborPos))
+	for (int x = 0; x < sizeX; ++x)
 	{
-		Wall* w = new Wall;
-		w->cellA = cells[pos.x][pos.y];
-		w->cellB = cells[neighborPos.x][neighborPos.y];
-		cells[pos.x][pos.y]->walls.push_back(w);
+		for (int y = 0; y < sizeY; ++y)
+		{
+			cells[x][y].position = intVec2(x, y);
+			GenerateCellWalls(cells[x][y]);
+		}
 	}
 }
 
 void GenerateMaze()
 {
-	CreateGrid();
-	for (int x = 0; x < sizeX; ++x)
+	//pick a cell
+	intVec2 pickedCellPos(0, 0);
+	//use macro for readability
+#define pickedCell cells[pickedCellPos.x][pickedCellPos.y]
+
+	//mark as part of maze
+	pickedCell.isInMaze = true;
+	//add walls of cell to wall list
+	vector<Wall*> wallList;
+	AddWallsToWallList(wallList, pickedCell);
+
+	while (!wallList.empty())
 	{
-		for (int y = 0; y < sizeY; ++y)
+		//pick random wall from list
+		//int randomWallListIndex = GetRand(0, wallList.size() - 1);
+		//Wall pickedWall = wallList[randomWallListIndex];
+		//debug
+		//Wall pickedWall = wallList.back();
+
+		//is cell on opposite side in maze?
+		//use macro for readability
+		#define oppositeCell cells[wallList.back()->otherSide.x][wallList.back()->otherSide.y]
+		//check if this is boundary wall where the oppositie side is out of  bounds
+		bool isOppositeCellOutOfBounds = false;
+		if (wallList.back()->otherSide.x < 0 || wallList.back()->otherSide.y < 0)
+			isOppositeCellOutOfBounds = true;
+		if (!isOppositeCellOutOfBounds && !oppositeCell.isInMaze)
 		{
-			intVec2 pos = intVec2(x, y);
-			intVec2 neighborPos = intVec2(x, y) + CellDirection::north;
-			LoadWall(pos, neighborPos);
-			neighborPos = intVec2(x, y) + CellDirection::east;
-			LoadWall(pos, neighborPos);
-			neighborPos = intVec2(x, y) + CellDirection::south;
-			LoadWall(pos, neighborPos);
-			neighborPos = intVec2(x, y) + CellDirection::west;
-			LoadWall(pos, neighborPos);
+			//make wall a passage;
+			wallList.back()->isWall = false;
+			//mark cell on opposite side as part of maze
+			oppositeCell.isInMaze = true;
+			//add neighboring walls of the cell to the list
+			AddWallsToWallList(wallList, oppositeCell);
 		}
+		//remove the wall from the list
+		//debug
+		wallList.pop_back();
 	}
+
 }
 
-void PrintBottomRow(vector<Cell*>& rowToPrint)
+void GenerateCellWalls(Cell& cell)
 {
-	for (Cell* c : rowToPrint)
-	{
-		//get south wall status
-		intVec2 neighborPos = c->position + CellDirection::south;
-		assert(IsInBounds(neighborPos));
-		Wall* w = c->GetWall(cells[neighborPos.x][neighborPos.y]);
-		if (w == nullptr || w->isWall)
-			cout << "_";
-		else
-			cout << " ";
-	}
-	cout << endl;
+	if (IsInBounds(cell.position + intVec2::north))
+		cell.walls[Wall::N].otherSide = cell.position + intVec2::north;
+	if (IsInBounds(cell.position + intVec2::east))
+		cell.walls[Wall::E].otherSide = cell.position + intVec2::east;
+	if (IsInBounds(cell.position + intVec2::south))
+		cell.walls[Wall::S].otherSide = cell.position + intVec2::south;
+	if (IsInBounds(cell.position + intVec2::west))
+		cell.walls[Wall::W].otherSide = cell.position + intVec2::west;
 }
 
-void PrintCenterRow(vector<Cell*>& rowToPrint)
+void PrintSouthWallRow(int rowIndex)
 {
-	for (Cell* c : rowToPrint)
+	for (int y = 0; y < sizeY; ++y)
+		{
+			if (cells[rowIndex][y].walls[Wall::S].isWall)
+				cout << "_";
+			else
+				cout << " ";
+		}
+}
+
+void PrintNorthWallRow(int rowIndex)
+{
+	for (int y = 0; y < sizeY; ++y)
 	{
-		//get west wall status
-		intVec2 wNeighborPos = c->position + CellDirection::west;
-		Wall* westWall = nullptr;
-		if (wNeighborPos.x >= 0)
-			westWall = c->GetWall(cells[wNeighborPos.x][wNeighborPos.y]);
-
-		//get east wall
-		intVec2 eNeighborPos = c->position + CellDirection::east;
-		Wall* eastWall = nullptr;
-		if (eNeighborPos.x < sizeX)
-			eastWall = c->GetWall(cells[eNeighborPos.x][eNeighborPos.y]);
-
-		if (westWall == nullptr || westWall->isWall)
-			cout << "|";
-		else
-			cout << " ";
-		cout << " ";
-		if (eastWall == nullptr || eastWall->isWall)
-			cout << "|";
-		else
-			cout << " ";
+		if (cells[rowIndex][y].walls[Wall::N].isWall)
+			;
 	}
-	cout << endl;
 }
 
 void PrintMaze()
 {
-	//top row
-	for (int i = 0; i < sizeX; ++i)
+	for (int i = 0; i < sizeX; i++)
 	{
-		cout << "_";
-	}
-	cout << endl;
-	
-	for (int x = 0; x < sizeX; ++x)
-	{
-		PrintCenterRow(cells[x]);
-		PrintBottomRow(cells[x]);
+		PrintSouthWallRow(i);
 	}
 }
 
-void main()
+void AddWallsToWallList(vector<Wall*>& wallList, Cell& cell)
 {
-	GenerateMaze();
-
-	PrintMaze();
-
-	system("pause");
+	for (int i = 0; i < 4; i++)
+	{
+		if (cell.walls[i].isWall)
+			wallList.push_back(&cell.walls[i]);
+	}
 }
 
-//
-//
-//
-//enum WALLDIRECTION
-//{
-//	N = 0,
-//	E,
-//	S,
-//	W
-//};
-//
-//struct Cell;
-//
-////a wall is a vertice edge between 2 cells.
-////the data signifies the wall is between cell1 and cell2 in the direction noted
-////i.e. Wall direction = N, cell1 = [0][0], cell2 = [0][1] is N wall w respect to cell1
-
-//
-//typedef vector<Wall*> List;
-//typedef List::iterator ListIt;
-//
-//struct Cell
-//{
-//	int x, y;
-//	Wall* walls[4];
-//	bool isPartOfMaze;
-//
-//	Cell()
-//	{
-//		x = 0;
-//		y = 0;
-//		isPartOfMaze = false;
-//		for (int i = 0; i < 4; ++i)
-//		{
-//			walls[i] = nullptr;
-//		}
-//	}
-//	Cell(int x, int y)
-//	{
-//		this->x = x;
-//		this->y = y;
-//		isPartOfMaze = false;
-//		for (int i = 0; i < 4; ++i)
-//		{
-//			walls[i] = nullptr;
-//		}
-//	}
-//
-//	friend ostream& operator<<(ostream& out, Cell& rhs)
-//	{
-//		if (rhs.isPartOfMaze)
-//			out << "*";
-//		else
-//			out << " ";
-//		return out;
-//	}
-//};
-//
-//
-//
-
-//
-//Cell* cells[sizeX][sizeY];
-//
-//void GenerateMaze()
-//{
-//	for (int x = 0; x < sizeX; ++x)
-//	{
-//		for (int y = 0; y < sizeY; ++y)
-//		{
-//			cells[x][y] = new Cell(x, y);
-//		}
-//	}
-//
-//	//loop again because assigning cells for the walls might not be created yet during prev loop
-//	//must be better way
-//
-//	for (int x = 0; x < sizeX; ++x)
-//	{
-//		for (int y = 0; y < sizeY; ++y)
-//		{
-//			Wall* neighborWalls[4];
-//			Wall* nWall = new Wall;
-//			Wall* eWall = new Wall;
-//			Wall* sWall = new Wall;
-//			Wall* wWall = new Wall;
-//			int eX = x + 1;
-//			int wX = x - 1;
-//			int nY = y + 1;
-//			int sY = y - 1;
-//
-//			eWall->direction = E;
-//			if (eX < sizeX)
-//			{
-//				eWall->neighborCell = cells[eX][y];
-//			}
-//			else
-//				eWall->neighborCell = nullptr;
-//
-//			wWall->direction = W;
-//			if (wX >= 0)
-//				wWall->neighborCell = cells[wX][y];
-//			else
-//				wWall->neighborCell = nullptr;
-//
-//			nWall->direction = N;
-//			if (nY < sizeY)
-//				nWall->neighborCell = cells[x][nY];
-//			else
-//				nWall->neighborCell = nullptr;
-//
-//			sWall->direction = S;
-//			if (sY >= 0)
-//				sWall->neighborCell = cells[x][sY];
-//			else
-//				sWall->neighborCell = nullptr;
-//
-//			cells[x][y]->walls[N] = nWall;
-//			cells[x][y]->walls[E] = eWall;
-//			cells[x][y]->walls[S] = sWall;
-//			cells[x][y]->walls[W] = wWall;
-//		}
-//	}
-//
-//}
-//
-//void DestroyMaze()
-//{
-//	for (int x = 0; x < sizeX; ++x)
-//	{
-//		for (int y = 0; y < sizeY; ++y)
-//		{
-//			Cell* c = cells[x][y];
-//			for (int i = 0; i < 4; ++i)
-//			{
-//				delete c->walls[i];
-//			}
-//			delete c;
-//		}
-//	}
-//}
-//
-//void PrintMaze()
-//{
-//	for (int x = 0; x < sizeX; ++x)
-//	{
-//		for (int y = 0; y < sizeY; ++y)
-//		{
-//			cout << *cells[x][y];
-//		}
-//		cout << endl;
-//	}
-//	cout << endl;
-//}
-//
-//int GetRand(int min, int max)
-//{
-//	int r = (rand() % (max - min + 1)) + min;
-//	assert(r >= min);
-//	assert(r <= max);
-//	return r;
-//}
-//
-//Cell* PickRandCell()
-//{
-//	int x = GetRand(0, sizeX);
-//	int y = GetRand(0, sizeY);
-//	return cells[x][y];
-//}
-//
-//
-//
-//void main()
-//{
-//	srand(time(NULL));
-//	GenerateMaze();
-//	PrintMaze();
-//
-//	//pick a cell
-//	Cell* pickedCell = cells[0][0];
-//
-//	//mark as part of maze
-//	pickedCell->isPartOfMaze = true;
-//
-//	//add walls of cell to wall list
-//	List wallList;
-//	for (int i = 0; i < 4; ++i)
-//	{
-//		if (pickedCell->walls[i]->neighborCell != nullptr)
-//		{
-//			wallList.push_back(pickedCell->walls[i]);
-//		}
-//	}
-//
-//	int count = 0;
-//	while (wallList.size() > 0 || count < sizeX * sizeY)
-//	{
-//		//pick random wall from list
-//		int index = GetRand(0, wallList.size() - 1);
-//		ListIt it = wallList.begin() + index;
-//		Wall* pickedWall = wallList[index];
-//
-//		//is cell on opposite side in maze?
-//		if (!pickedWall->neighborCell->isPartOfMaze)
-//		{
-//			Cell* neighborCell = pickedWall->neighborCell;
-//
-//			//mark opposite cell part of maze
-//			neighborCell->isPartOfMaze = true;
-//
-//			//make wall passage
-//			pickedWall = nullptr;
-//
-//			//add neighboring walls to wall list
-//			for (int i = 0; i < 4; ++i)
-//			{
-//				Wall* wall = neighborCell->walls[i];
-//				if (wall != nullptr && wall->neighborCell != nullptr)
-//				{
-//					wallList.push_back(wall);
-//				}
-//			}
-//
-//
-//
-//			//remove from walllist
-//			wallList.erase(it);
-//
-//			
-//		}
-//
-//		count++;
-//	}
-//
-//	DestroyMaze();
-//}
-//
+int GetRand(int min, int max)
+{
+	int r = (rand() % (max - min + 1)) + min;
+	assert(r >= min);
+	assert(r <= max);
+	return r;
+}
